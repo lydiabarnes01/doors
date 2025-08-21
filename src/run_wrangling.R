@@ -145,6 +145,7 @@ if (exp=="exp_ts"){
   tmp <- res %>% 
     ungroup() %>% 
     group_by(sub,ses,switch) %>% 
+    filter(ses == "3") %>%
     filter(rt_correct < 4) %>% # v unrealistic upper cutoff
     summarise(
       mu = mean(rt_correct, na.omit=TRUE),
@@ -153,10 +154,17 @@ if (exp=="exp_ts"){
     mutate(cutoff = mu+2.5*sd) %>% 
     select(!c(mu,sd))
   
+  # okies, now I have the cutoff for rt correct specific to the
+  # testing session (no need to filter the training session)
   res <- left_join(res,tmp)
   
-  res <- res %>% 
-    filter(rt_correct<=cutoff)
+  # now I want to replace any rt_correct values that are > than the cutoff with NA
+  # or just put rt_correct if there is an NA
+  res <- res %>% mutate(rt_correct = case_when( is.na(cutoff) ~ rt_correct,
+                                                rt_correct < cutoff ~ rt_correct,
+                                                TRUE ~ NA))
+  # job done
+  
 }
 
 fnl <- file.path(project_path, "res", paste(paste(exp, "trl", sep = "_"), ".csv", sep = ""))
